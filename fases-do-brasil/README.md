@@ -23,7 +23,7 @@ Para abrir no celular/TV: use o endereço de rede mostrado pelo Vite (`Network: 
 | `services/` | `PhaseService` (API com fallback local), `ArtService` (ilustrações SVG) | Service Layer, Strategy |
 | `auth/` | `Session`, `AuthService`, `AuthGuard` (extensão futura de login/RBAC) | Singleton, Guard |
 | `models/` | `TimelineModel` (estado observável) | Model (MVC), Observer |
-| `view/` | Navbar de vidro, Timeline, Detalhe (zoom), Sobre, Cena 3D | View (MVC) |
+| `view/` | Navbar de vidro, Timeline, Detalhe (zoom), Sobre, Cena 3D (ampulheta) | View (MVC) |
 | `components/` | `PhaseCard`, `Gallery` (Bootstrap Carousel), `PeriodCard` | Component / Factory |
 | `controller/` | App (composition root), Timeline, Detail, Nav, Scene | Controller (MVC), Dependency Injection |
 
@@ -44,6 +44,9 @@ API (`server/index.js`): `GET /api/timeline`, `/api/phases`, `/api/phases/:id`, 
 | `/equipe` | Sobre nós |
 
 Em produção, o servidor precisa devolver `index.html` para qualquer rota (o `npm start` já faz isso; em hospedagem estática configure o "fallback SPA").
+
+## Fundo: ampulheta de areia
+`src/view/SceneView.js` (Three.js). A areia desce conforme o tempo em que a pessoa está no site (`RUN_SECONDS`, padrão 120 s; só conta com a aba visível). Quando acaba, a ampulheta gira 180° e a areia volta a cair. O ponto da areia é guardado na sessão do navegador (recarregar não zera). Ajuste tempos e tamanhos nas constantes no topo do arquivo. Respeita `prefers-reduced-motion`.
 
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
