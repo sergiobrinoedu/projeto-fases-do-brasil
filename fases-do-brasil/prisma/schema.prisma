@@ -1,0 +1,150 @@
+// Schema Prisma — espelha os arquivos data/*.sql (a fonte da verdade das tabelas é data/).
+// Após alterar: npx prisma generate
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum AuthProvider {
+  local
+  google
+}
+
+enum UserRole {
+  student
+  editor
+}
+
+model User {
+  id            BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  name          String       @db.VarChar(100)
+  email         String       @unique(map: "uq_users_email") @db.VarChar(160)
+  passwordHash  String?      @map("password_hash") @db.VarChar(100)
+  googleSub     String?      @unique(map: "uq_users_google_sub") @map("google_sub") @db.VarChar(64)
+  avatarUrl     String?      @map("avatar_url") @db.VarChar(500)
+  authProvider  AuthProvider @default(local) @map("auth_provider")
+  emailVerified Boolean      @default(false) @map("email_verified")
+  role          UserRole     @default(student)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at")
+  lastLoginAt   DateTime?    @map("last_login_at")
+
+  sessions Session[]
+  reads    UserPhaseRead[]
+  journey  UserJourney?
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @db.Char(64)
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  userAgent String?  @map("user_agent") @db.VarChar(255)
+  ip        String?  @db.VarChar(45)
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_sessions_user")
+
+  @@index([userId], map: "ix_sessions_user")
+  @@index([expiresAt], map: "ix_sessions_expires")
+  @@map("sessions")
+}
+
+model Period {
+  id          String  @id @db.VarChar(32)
+  name        String  @db.VarChar(80)
+  startYear   Int     @map("start_year") @db.SmallInt
+  endYear     Int?    @map("end_year") @db.SmallInt
+  description String  @db.Text
+  sortOrder   Int     @default(0) @map("sort_order") @db.SmallInt
+
+  phases Phase[]
+
+  @@map("periods")
+}
+
+model Phase {
+  id        String  @id @db.VarChar(48)
+  periodId  String  @map("period_id") @db.VarChar(32)
+  title     String  @db.VarChar(120)
+  subtitle  String  @db.VarChar(120)
+  startYear Int     @map("start_year") @db.SmallInt
+  endYear   Int?    @map("end_year") @db.SmallInt
+  art       String? @db.VarChar(32)
+  summary   String  @db.Text
+  sortOrder Int     @unique(map: "uq_phases_order") @map("sort_order") @db.SmallInt
+
+  period     Period           @relation(fields: [periodId], references: [id], map: "fk_phases_period")
+  paragraphs PhaseParagraph[]
+  highlights PhaseHighlight[]
+  images     PhaseImage[]
+  reads      UserPhaseRead[]
+
+  @@index([periodId], map: "ix_phases_period")
+  @@map("phases")
+}
+
+model PhaseParagraph {
+  id       Int    @id @default(autoincrement()) @db.UnsignedInt
+  phaseId  String @map("phase_id") @db.VarChar(48)
+  position Int    @db.SmallInt
+  content  String @db.Text
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_paragraph_phase")
+
+  @@unique([phaseId, position], map: "uq_paragraph_pos")
+  @@map("phase_paragraphs")
+}
+
+model PhaseHighlight {
+  id       Int    @id @default(autoincrement()) @db.UnsignedInt
+  phaseId  String @map("phase_id") @db.VarChar(48)
+  position Int    @db.SmallInt
+  text     String @db.VarChar(160)
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_highlight_phase")
+
+  @@unique([phaseId, position], map: "uq_highlight_pos")
+  @@map("phase_highlights")
+}
+
+model PhaseImage {
+  id       Int     @id @default(autoincrement()) @db.UnsignedInt
+  phaseId  String  @map("phase_id") @db.VarChar(48)
+  position Int     @db.SmallInt
+  url      String  @db.VarChar(500)
+  caption  String? @db.VarChar(200)
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_image_phase")
+
+  @@unique([phaseId, position], map: "uq_image_pos")
+  @@map("phase_images")
+}
+
+model UserPhaseRead {
+  userId  BigInt   @map("user_id") @db.UnsignedBigInt
+  phaseId String   @map("phase_id") @db.VarChar(48)
+  readAt  DateTime @default(now()) @map("read_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_upr_user")
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_upr_phase")
+
+  @@id([userId, phaseId])
+  @@index([phaseId], map: "fk_upr_phase")
+  @@map("user_phase_read")
+}
+
+model UserJourney {
+  userId       BigInt   @id @map("user_id") @db.UnsignedBigInt
+  currentIndex Int?     @map("current_index") @db.SmallInt
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_uj_user")
+
+  @@map("user_journey")
+}
