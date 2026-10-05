@@ -2,7 +2,8 @@ import { session } from '@/auth/Session.js';
 
 const PERMISSIONS = {
   guest: ['view'],
-  editor: ['view', 'edit'],
+  member: ['view', 'sync'],
+  editor: ['view', 'sync', 'edit'],
 };
 
 /** Verificação de permissão por papel (RBAC simples). */

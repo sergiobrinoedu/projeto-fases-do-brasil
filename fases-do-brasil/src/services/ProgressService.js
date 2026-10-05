@@ -1,4 +1,6 @@
 import { bus } from '@/infra/EventBus.js';
+import { session } from '@/auth/Session.js';
+import { ApiClient } from '@/infra/http/ApiClient.js';
 
 const KEY = 'fdb.progress.v1';
 
@@ -27,6 +29,43 @@ export class ProgressService {
 
   #save() {
     try { localStorage.setItem(KEY, JSON.stringify({ read: [...this.#read], current: this.current })); } catch { /* noop */ }
+    this.#push();
+  }
+
+  /** Envia o progresso ao banco (só com usuário logado); falha de rede não interrompe a leitura. */
+  #push() {
+    if (!session.isAuthenticated || !this.phases.length) return;
+    const ids = this.phases.map((p) => p.id);
+    const read = ids.filter((id) => this.#read.has(id));
+    this.#api.put('/progress', { read, current: this.current }).catch(() => { /* tenta de novo na próxima ação */ });
+  }
+
+  #api = new ApiClient();
+
+  /**
+   * Após o login: junta o progresso do banco com o do navegador (união das fases lidas)
+   * e salva o resultado nos dois lados.
+   */
+  async sync() {
+    if (!session.isAuthenticated || !this.phases.length) return;
+    try {
+      const remote = await this.#api.get('/progress');
+      const ids = new Set(this.phases.map((p) => p.id));
+      remote.read.filter((id) => ids.has(id)).forEach((id) => this.#read.add(id));
+      if (remote.current !== undefined) {
+        this.current = this.current === null || remote.current === null ? null : Math.max(this.current, remote.current);
+      }
+      this.#save();
+      bus.emit('progress:changed', this);
+    } catch { /* offline: segue só com o progresso local */ }
+  }
+
+  /** Ao sair da conta: limpa o progresso deste navegador (computadores compartilhados). */
+  clearLocal() {
+    this.#read.clear();
+    this.current = 0;
+    try { localStorage.removeItem(KEY); } catch { /* noop */ }
+    bus.emit('progress:changed', this);
   }
 
   get total() { return this.phases.length; }

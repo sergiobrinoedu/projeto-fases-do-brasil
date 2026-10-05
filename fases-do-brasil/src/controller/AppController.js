@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { SITE } from '@/infra/data/phases.data.js';
+import { bus } from '@/infra/EventBus.js';
 import { Router } from '@/infra/Router.js';
 import { ApiPhaseRepository } from '@/infra/repositories/ApiPhaseRepository.js';
 import { LocalPhaseRepository } from '@/infra/repositories/LocalPhaseRepository.js';
@@ -11,6 +12,9 @@ import { TimelineView } from '@/view/TimelineView.js';
 import { DetailView } from '@/view/DetailView.js';
 import { AboutView } from '@/view/AboutView.js';
 import { TeamView } from '@/view/TeamView.js';
+import { LoginView } from '@/view/LoginView.js';
+import { AuthService } from '@/auth/AuthService.js';
+import { AuthController } from '@/controller/AuthController.js';
 import { PageManager } from '@/view/PageManager.js';
 import { SceneView } from '@/view/SceneView.js';
 import { BubblesView } from '@/view/BubblesView.js';
@@ -24,7 +28,9 @@ import { BackgroundController } from '@/controller/BackgroundController.js';
 export class AppController {
   async start() {
     const service = new PhaseService(new ApiPhaseRepository(), new LocalPhaseRepository());
-    const model = new TimelineModel(new ProgressService());
+    const progress = new ProgressService();
+    const model = new TimelineModel(progress);
+    const auth = new AuthService();
     const router = new Router();
     const pages = new PageManager();
 
@@ -39,13 +45,18 @@ export class AppController {
     const scene = new SceneController(new SceneView(document.getElementById('scene')));
     const background = new BackgroundController({ sceneView: scene.scene, bubblesView: new BubblesView('#bubbles') });
 
-    nav.init();
+    const authCtl = new AuthController({ auth, view: new LoginView('#page-login .container'), router, pages, progress });
+
+    // Restaura a sessão (cookie) antes de desenhar a navbar; falha de rede = visitante.
+    const { user } = await auth.init();
+    nav.init(user);
+    authCtl.init();
     scene.init();
     timeline.init();
     detail.init();
     background.init();
 
-    // ---- Rotas: / · /fase/:id · /sobre · /equipe
+    // ---- Rotas: / · /fase/:id · /sobre · /equipe · /login
     const closeDetail = () => model.opened && model.close();
     router
       .add('/', () => { pages.show('home', { resetScroll: !model.opened }); closeDetail(); })
@@ -54,6 +65,7 @@ export class AppController {
         if (!detail.openById(params.id)) router.navigate('/', { replace: true });
       })
       .add('/sobre', () => { closeDetail(); pages.show('sobre'); })
+      .add('/login', () => { closeDetail(); authCtl.show(); })
       .add('/equipe', () => { closeDetail(); pages.show('equipe'); })
       .fallback(() => router.navigate('/', { replace: true }));
 
@@ -63,6 +75,8 @@ export class AppController {
       aboutView.render({ periods, site: SITE });
       teamView.render({ site: SITE });
       model.hydrate({ phases, periods });
+      progress.sync(); // se já estiver logado, une o progresso do banco com o do navegador
+      bus.on('auth:changed', ({ user: u }) => u && progress.sync());
     } catch (err) {
       console.error(err);
       $('#page-home .journey__text').text('Não foi possível carregar as fases.');
