@@ -13,7 +13,9 @@ const WALL = 0.05;      // espessura do vidro
 const FILL = 0.5;       // fração do bulbo ocupada pela areia
 
 // ---- Tempo (segundos) ----
-const RUN_SECONDS = 120; // quanto tempo a areia leva para descer toda
+const RUN_SECONDS = 100; // segundos de leitura/navegação ativa para a areia descer toda
+const FLOW_RATE = 0.045; // velocidade máx. (fração/s) ao 'derramar' um impulso (ex.: fase concluída)
+const DOCK_SECONDS = 0.9;
 const REST_SECONDS = 1.4; // pausa com tudo embaixo
 const FLIP_SECONDS = 2.8; // giro de 180°
 const SLUMP_SECONDS = 1.1; // areia "cai" da ponta para o gargalo depois de virar
@@ -94,6 +96,11 @@ export class SceneView {
       if (saved && Number.isFinite(saved.s)) this.s = Math.min(0.995, Math.max(0, saved.s));
     } catch { /* sem storage: começa do zero */ }
     this.saveAt = 0;
+    this.energy = 0;      // segundos de areia ainda "autorizados" a cair (atividade do usuário)
+    this.reading = false; // detalhe de uma fase aberto: leitura contínua
+    this.flow = 0;        // fração de areia pendente (impulsos)
+    this.pourHold = 0;    // mantém o fio visível um instante após parar
+    this.zoomLevel = 0; this.page = 'home'; this.dockNow = 0;
   }
 
   #persist(t) {
@@ -208,6 +215,17 @@ export class SceneView {
   setActive() {}
   setScroll(p) { this.scroll = p; }
   setZoom(on) { this.zoom = on ? 1 : 0; }
+  setZoomLevel(z) { this.zoomLevel = z; }
+  setPage(name) { this.page = name; }
+  setReading(on) {
+    this.reading = on;
+    // durante a leitura a ampulheta (já no canto) fica por cima do painel, para o aluno ver a areia cair
+    if (this.canvas) { this.canvas.style.zIndex = on ? '90' : ''; this.canvas.style.opacity = on ? '1' : ''; }
+  }
+  /** Atividade do usuário (rolar, clicar, teclar, tocar): libera alguns segundos de areia. */
+  ping(sec = 0.6) { this.energy = Math.min(4, this.energy + sec); }
+  /** Impulso de areia (ex.: fase concluída). `units` = fração do total. */
+  addFlow(units) { this.flow = Math.min(0.3, this.flow + units); }
 
   #bind() {
     window.addEventListener('pointermove', (e) => {
@@ -215,6 +233,8 @@ export class SceneView {
       this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
     }, { passive: true });
     window.addEventListener('resize', () => this.resize());
+    ['wheel', 'pointerdown', 'keydown', 'touchmove'].forEach((ev) => window.addEventListener(ev, () => this.ping(0.5), { passive: true }));
+    window.addEventListener('scroll', () => this.ping(0.3), { passive: true });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) this.clock.getDelta(); });
   }
 
@@ -244,7 +264,7 @@ export class SceneView {
       showTop = s < 0.999;
       showBot = s > 0.001;
       showMound = showBot;
-      streamOn = this.state === 'run' && s > 0.001 && s < 0.999;
+      streamOn = this.state === 'run' && s > 0.001 && s < 0.999 && this.pourHold > 0;
     } else if (this.state === 'slump') {
       const e = ease(slumpK);
       const ub1 = invC(CH - V);
@@ -292,7 +312,17 @@ export class SceneView {
     this.phaseT += dt;
 
     if (this.state === 'run') {
-      this.s += dt / RUN_SECONDS;
+      let pouring = false;
+      if (this.reading || this.energy > 0) {
+        pouring = true;
+        this.s += dt / RUN_SECONDS * (this.reading ? 0.6 : 1);
+        this.energy = Math.max(0, this.energy - dt);
+      }
+      if (this.flow > 0) {
+        const d = Math.min(this.flow, dt * FLOW_RATE);
+        this.flow -= d; this.s += d; pouring = true;
+      }
+      this.pourHold = pouring ? 0.7 : Math.max(0, this.pourHold - dt);
       if (this.s >= 1) { this.s = 1; this.state = 'rest'; this.phaseT = 0; }
       this.#apply();
     } else if (this.state === 'rest') {
@@ -338,17 +368,36 @@ export class SceneView {
     this.#persist(t);
 
     this.zoomNow += (this.zoom - this.zoomNow) * Math.min(1, dt * 3.2);
+    // acoplamento: centro → canto superior direito conforme o zoom da linha do tempo / outras páginas / detalhe
+    const dockT = this.page !== 'home' || this.zoom ? 1 : Math.min(1, this.zoomLevel * 2.2);
+    this.dockNow += (dockT - this.dockNow) * Math.min(1, dt * (3 / DOCK_SECONDS));
+    const d = this.dockNow * this.dockNow * (3 - 2 * this.dockNow);
     this.scrollNow = (this.scrollNow ?? 0) + ((this.scroll ?? 0) - (this.scrollNow ?? 0)) * Math.min(1, dt * 2.2);
 
     // parallax do mouse, flutuação suave e acompanhamento da rolagem (fundo contínuo)
     const o = this.outer;
-    o.rotation.y += (this.mouse.x * 0.4 - o.rotation.y) * Math.min(1, dt * 2.5);
-    o.rotation.x += (this.mouse.y * 0.1 - o.rotation.x) * Math.min(1, dt * 2.5);
-    o.position.y = this.scrollNow * 2.4 + Math.sin(t * 0.6) * 0.1 * motion;
+    const par = 1 - 0.7 * d;
+    o.rotation.y += (this.mouse.x * 0.4 * par - o.rotation.y) * Math.min(1, dt * 2.5);
+    o.rotation.x += (this.mouse.y * 0.1 * par - o.rotation.x) * Math.min(1, dt * 2.5);
+    o.rotation.y += Math.sin(Math.PI * d) * 0.06 * motion; // pequena rotação durante o deslocamento
+
+    const W = window.innerWidth; const Hh = window.innerHeight;
+    const camZ = this.camera.position.z;
+    const half = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * camZ; // meia altura visível em z=0
+    const pxPerUnit = Hh / (2 * half);
+    const dockPx = W < 576 ? 90 : Math.min(150, Math.max(100, Hh * 0.145));
+    const sx = W - 56 - dockPx * 0.32;
+    const sy = (W < 576 ? 92 : 100) + dockPx / 2;
+    const tx = ((sx / W) * 2 - 1) * half * (W / Hh);
+    const ty = (1 - (sy / Hh) * 2) * half;
+    const sc = dockPx / (2 * H * pxPerUnit);
+    o.position.x = tx * d;
+    o.position.y = (this.scrollNow * 2.4 * (1 - d) + Math.sin(t * 0.6) * 0.1 * motion) * 1 + ty * d;
+    o.scale.setScalar(1 + (sc - 1) * d);
     this.dust.position.y = this.scrollNow * 1.5;
     this.dust.rotation.y += dt * 0.01 * (1 + this.zoomNow * 3) * motion;
 
-    this.camera.position.z += (this.baseZ - this.zoomNow * 3 - this.camera.position.z) * Math.min(1, dt * 3);
+    this.camera.position.z += (this.baseZ - this.zoomNow * 3 * (1 - this.dockNow) - this.camera.position.z) * Math.min(1, dt * 3);
     this.camera.position.x += (this.mouse.x * 0.5 - this.camera.position.x) * Math.min(1, dt * 2.5);
     this.camera.lookAt(0, 0, 0);
 

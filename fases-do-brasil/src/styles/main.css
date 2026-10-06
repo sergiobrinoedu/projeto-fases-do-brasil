@@ -22,7 +22,7 @@
 }
 
 html { font-size: 16px; scroll-behavior: smooth; background: #150c02; }
-@media (min-width: 1600px) { html { font-size: 20px; } }   /* desktops grandes / TV Full HD */
+@media (min-width: 1600px) { html { font-size: clamp(16px, 2.4svh, 20px); } }   /* desktops grandes / TV Full HD */
 @media (min-width: 2400px) { html { font-size: 28px; } }   /* TV 4K */
 @media (min-width: 3400px) { html { font-size: 40px; } }
 
@@ -132,10 +132,13 @@ a { color: inherit; }
 .tl-stage {
   --stage-h: calc(100svh - 12.2rem);
   --bar: 3.9rem;                                                              /* faixa dos controles de zoom */
-  --cw: clamp(9.2rem, calc(((var(--stage-h) - var(--bar)) / 2 - 4.6rem) / 1.28), 15.5rem); /* largura do card de fase */
-  --mw: calc(var(--cw) * 0.64);                                               /* largura do card de marco */
   --gap: 3.3rem;                                                              /* da linha até o card */
-  position: relative; height: max(var(--stage-h), 27rem); perspective: 1100px; perspective-origin: 50% calc(50% - var(--bar) / 2);
+  --pad-y: 3.4rem;                                                            /* folga vertical: nada é cortado pela máscara */
+  --cw-max: 15.5rem;
+  /* largura do card: cabe SEMPRE na meia-altura (gap + nome + folga do hover), em qualquer tela */
+  --cw: clamp(8rem, calc(((max(var(--stage-h), 39rem) - var(--bar)) / 2 - var(--gap) - 3.1rem) / 1.28), var(--cw-max));
+  --mw: calc(var(--cw) * 0.64);                                               /* largura do card de marco */
+  position: relative; height: calc(max(var(--stage-h), 39rem) + 2 * var(--pad-y)); margin-block: calc(-1 * var(--pad-y)); perspective: 1100px; perspective-origin: 50% calc(50% - var(--bar) / 2);
   overflow-x: clip; overflow-y: visible; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
@@ -187,7 +190,7 @@ a { color: inherit; }
 @keyframes dotPulse { 50% { box-shadow: 0 0 0 12px rgba(230, 157, 61, 0.08), 0 0 34px var(--gold); } }
 
 /* controles de zoom + indicador de nível */
-.tl-controls { position: absolute; left: 50%; bottom: max(0.3rem, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem; border-radius: 999px; background: linear-gradient(135deg, rgba(222, 191, 136, 0.22), rgba(31, 19, 4, 0.55)); border: 1px solid var(--glass-line); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4); }
+.tl-controls { position: absolute; left: 50%; bottom: calc(var(--pad-y) + max(0.3rem, env(safe-area-inset-bottom))); transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem; border-radius: 999px; background: linear-gradient(135deg, rgba(222, 191, 136, 0.22), rgba(31, 19, 4, 0.55)); border: 1px solid var(--glass-line); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4); }
 .tl-zoom { width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 0; cursor: pointer; font: 700 1.3rem/1 var(--font-display); color: var(--ink); background: var(--gold); transition: transform 0.25s var(--pop), background 0.25s, opacity 0.25s; }
 .tl-zoom:hover:not(:disabled) { transform: scale(1.12); background: var(--sand); }
 .tl-zoom:disabled { opacity: 0.35; cursor: default; }
@@ -196,7 +199,7 @@ a { color: inherit; }
 .tl-level__dots { display: flex; gap: 0.35rem; }
 .tl-level__dots i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: rgba(222, 191, 136, 0.25); transition: background 0.3s, transform 0.3s var(--pop); }
 .tl-level__dots i.is-on { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
-.tl-hint { position: absolute; z-index: 13; left: 1.2rem; bottom: 1rem; margin: 0; max-width: 26%; padding: 0.35rem 0.9rem; border-radius: 999px; background: rgba(31, 19, 4, 0.82); border: 1px solid var(--glass-line); text-align: center; font-size: 0.82rem; color: var(--sand); pointer-events: none; transition: opacity 0.6s; animation: hintPulse 2.4s ease-in-out infinite; }
+.tl-hint { position: absolute; z-index: 13; left: 1.2rem; bottom: calc(var(--pad-y) + 1rem); margin: 0; max-width: 26%; padding: 0.35rem 0.9rem; border-radius: 999px; background: rgba(31, 19, 4, 0.82); border: 1px solid var(--glass-line); text-align: center; font-size: 0.82rem; color: var(--sand); pointer-events: none; transition: opacity 0.6s; animation: hintPulse 2.4s ease-in-out infinite; }
 .tl-hint.is-gone { opacity: 0; animation: none; }
 @keyframes hintPulse { 50% { opacity: 0.55; } }
 
@@ -373,11 +376,13 @@ a { color: inherit; }
 /* ----- Timeline: ajustes de tela ----- */
 @media (max-width: 575px) {
   .hero__head--compact { padding-top: 4.6rem; }
-  .tl-stage { --stage-h: calc(100svh - 11rem); --gap: 2.9rem; }
+  .tl-stage { --stage-h: calc(100svh - 11rem); --gap: 2.9rem; --pad-y: 2.8rem; }
   .tl-hint { display: none; }
 }
+/* telas baixas e largas: cabeçalho compacto para o cartão de cima nunca ser espremido */
+@media (max-height: 820px) and (min-width: 576px) { .hero__head--compact { padding-top: 4.9rem; } .hero__head--compact .lead, .hero__head--compact .journey { display: none; } .tl-stage { --stage-h: calc(100svh - 7.6rem); } }
 @media (max-height: 640px) { .tl-stage { --stage-h: calc(100svh - 10.4rem); } .hero__head--compact .journey { display: none; } }
-@media (min-width: 1600px) { .tl-stage { --cw: clamp(9.2rem, calc(((var(--stage-h) - var(--bar)) / 2 - 4.6rem) / 1.28), 19rem); } .tl-date { font-size: 1.05rem; } .tl-name { font-size: 0.85rem; } }
+@media (min-width: 1600px) { .tl-stage { --cw-max: 19rem; } .tl-date { font-size: 1.05rem; } .tl-name { font-size: 0.85rem; } }
 @media (max-width: 1100px) { .tl-hint { display: none; } }
 .tl-item[data-state='current'] .phase-card__badge, .tl-item[data-state='read'] .phase-card__badge { display: none; }
 body[data-page='home'] .footer { display: none; } /* a home ocupa a tela inteira (timeline) */
