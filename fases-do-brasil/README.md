@@ -41,7 +41,7 @@ API (`server/index.js`): `GET /api/timeline`, `/api/phases`, `/api/phases/:id`, 
 ## Rotas
 | URL | View |
 |---|---|
-| `/` | Linha do tempo (3 fases por linha; a linha desce) |
+| `/` | Linha do tempo horizontal com zoom (Períodos → Fases → Marcos) |
 | `/fase/:id` | Detalhe de uma fase (ex.: `/fase/era-vargas`) |
 | `/sobre` | Sobre o projeto |
 | `/equipe` | Sobre nós |
@@ -51,6 +51,13 @@ Em produção, o servidor precisa devolver `index.html` para qualquer rota (o `n
 
 ## Fundo: ampulheta de areia
 `src/view/SceneView.js` (Three.js). A areia desce conforme o tempo em que a pessoa está no site (`RUN_SECONDS`, padrão 120 s; só conta com a aba visível). Quando acaba, a ampulheta gira 180° e a areia volta a cair. O ponto da areia é guardado na sessão do navegador (recarregar não zera). Ajuste tempos e tamanhos nas constantes no topo do arquivo. Respeita `prefers-reduced-motion`.
+
+## Linha do tempo horizontal com zoom
+Layout baseado no SVG de referência: linha horizontal centralizada, cards alternando acima/abaixo, **data** junto ao ponto e **nome** da fase na ponta do card. O zoom é contínuo, como no Google Maps:
+- **Períodos** (Colônia · Império · República) → **Fases** (11 cards clicáveis) → **Marcos** (destaques de cada fase).
+- Ao aproximar, a camada atual "passa à frente" (cresce e some com transparência suave) e a seguinte vem de longe (zoom in); ao afastar acontece o contrário (zoom out).
+- Controles: roda do mouse (zoom no cursor; no limite a página rola), pinça no celular, botões **＋ / −**, duplo clique, arrastar para navegar. Teclado/TV: ← → fase anterior/próxima · ↑ ↓ (ou + −) zoom · Home visão geral.
+- Os cards mantêm o visual e o efeito 3D de antes. Parâmetros de escala em `src/view/TimelineView.js`; tamanhos em `.tl-stage` (`src/styles/main.css`).
 
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
@@ -64,7 +71,7 @@ Em produção, o servidor precisa devolver `index.html` para qualquer rota (o `n
 - **UX:** ícone de usuário na navbar → `/login`; botão **CADASTRE-SE** alterna entre as áreas Entrar/Cadastrar; logado, o ícone vira avatar com menu (*Minha conta* / *Sair*).
 
 ## Navegação
-Mouse (hover = zoom + card 3D), toque, teclado/controle de TV (← → ↑ ↓ Enter Esc).
+Mouse (hover = zoom + card 3D), toque (arrastar/pinça), teclado/controle de TV (← → fases · ↑ ↓ zoom · Enter abre · Esc fecha).
 
 ## Versionamento (Git)
 Padrão de commit (já configurado em `.gitmessage`):
