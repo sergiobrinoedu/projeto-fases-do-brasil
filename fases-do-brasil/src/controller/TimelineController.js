@@ -1,4 +1,6 @@
 import { bus } from '@/infra/EventBus.js';
+import { ResetButton } from '@/components/ResetButton.js';
+import { mirrorProgressToCookie } from '@/services/ProgressCookie.js';
 
 /** Controller: liga Model/Progress à TimelineView (entrada do usuário → modelo → visual). */
 export class TimelineController {
@@ -12,6 +14,15 @@ export class TimelineController {
     this.view.onSelect((index, rect) => this.model.open(index, rect));
     this.view.onHover((index) => this.model.setActive(index));
     this.view.onReset(() => progress.reset());
+
+    // botão fixo "Reiniciar" (canto superior esquerdo) + cookie de reserva do progresso
+    const fab = new ResetButton();
+    fab.onReset(() => progress.reset());
+    bus.on('timeline:loaded', () => fab.update(progress));
+    bus.on('progress:changed', () => fab.update(progress));
+    bus.on('phase:open', () => fab.setHidden(true));
+    bus.on('phase:close', () => fab.setHidden(false));
+    mirrorProgressToCookie(progress);
 
     bus.on('timeline:loaded', () => this.view.render(this.model, progress));
     bus.on('progress:changed', () => {
