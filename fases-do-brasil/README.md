@@ -62,6 +62,9 @@ Layout baseado no SVG de referência: linha horizontal centralizada, cards alter
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
 
+- **Sem conta:** o progresso fica no navegador em `localStorage` **e** num cookie de reserva (`fdb_progress`, 400 dias, `SameSite=Lax`, ver `src/services/ProgressCookie.js`). Se um dos dois for limpo, o outro restaura os cards "lidos".
+- **Botão Reiniciar** (canto superior esquerdo, `src/components/ResetButton.js`): dois toques (o primeiro pede "Confirmar?") apagam todos os cards lidos do navegador ou da conta logada. Fica desabilitado quando não há nada lido.
+
 ## Login, cadastro e banco de dados
 - **Banco:** MySQL (`instruções/datasetconfig.md` → usuário `root`, senha `root`). Os scripts de criação das tabelas estão em **`data/*.sql`** (um arquivo por assunto, executados em ordem por `npm run db:init`). `data/07_seed_conteudo.sql` é gerado de `src/infra/data/phases.data.js` (`npm run db:seed:gen`).
 - **Prisma:** `prisma/schema.prisma` espelha as tabelas; o acesso ao banco fica nas camadas `server/models` (Prisma Client) e `server/services` (regras). Rotas em `server/routes`.
