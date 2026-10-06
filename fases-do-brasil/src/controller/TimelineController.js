@@ -20,19 +20,19 @@ export class TimelineController {
       this.model.setActive(progress.focusIndex);
     });
 
-    // navegação por teclado / controle remoto de TV (grade 2D)
+    // navegação por teclado / controle remoto de TV:
+    // ← → fase anterior/próxima · ↑ ↓ (ou + −) zoom in/out · Home = visão geral
     document.addEventListener('keydown', (e) => {
       if (this.model.opened || e.altKey || e.ctrlKey || e.metaKey) return;
       if (document.getElementById('page-home')?.hidden) return;
       if (/^(input|textarea|select)$/i.test(e.target.tagName)) return;
-      const cols = this.view.cols;
-      const moves = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols };
-      if (!(e.key in moves)) return;
-      const from = Number(e.target.closest?.('.tl-item')?.dataset.index ?? progress.focusIndex);
-      const next = Math.max(0, Math.min(this.model.phases.length - 1, from + moves[e.key]));
+      const k = e.key;
+      if (k === 'ArrowRight' || k === 'ArrowLeft') this.view.step(k === 'ArrowRight' ? 1 : -1);
+      else if (k === 'ArrowUp' || k === '+' || k === '=') this.view.zoomBy(0.22);
+      else if (k === 'ArrowDown' || k === '-' || k === '_') this.view.zoomBy(-0.22);
+      else if (k === 'Home') this.view.zoomAt(0);
+      else return;
       e.preventDefault();
-      this.view.scrollToIndex(next);
-      this.view.focusCard(next);
     });
   }
 }

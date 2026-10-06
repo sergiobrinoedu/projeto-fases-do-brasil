@@ -28,6 +28,11 @@ export function createPhaseCard(phase, index, period) {
       <span class="phase-card__status" aria-hidden="true"></span>
     </button>`);
 
+  return attachTilt($card);
+}
+
+/** Efeito 3D que segue o mouse (compartilhado por todos os tipos de card). */
+export function attachTilt($card) {
   const el = $card[0];
   $card.on('pointermove', (e) => {
     if (e.originalEvent.pointerType !== 'mouse') return;
@@ -45,4 +50,36 @@ export function createPhaseCard(phase, index, period) {
   });
 
   return $card;
+}
+
+/** Card de um grande período (nível "Períodos" da linha do tempo). Clicar dá zoom no período. */
+export function createPeriodNodeCard(period, coverPhase, count) {
+  const $card = $(`
+    <button type="button" class="phase-card phase-card--period" data-period="${esc(period.id)}" aria-label="Dar zoom em ${esc(period.name)}">
+      <span class="phase-card__shadow" aria-hidden="true"></span>
+      <span class="phase-card__face">
+        <span class="phase-card__img"><img src="${art.cover(coverPhase)}" alt="" width="800" height="500" draggable="false" loading="lazy"></span>
+        <span class="phase-card__body">
+          <span class="phase-card__years">${esc(period.yearsLabel)}</span>
+          <strong class="phase-card__title">${esc(period.name)}</strong>
+          <span class="phase-card__sub">${count} fases históricas</span>
+        </span>
+        <span class="phase-card__cta" aria-hidden="true">Dar zoom <i>＋</i></span>
+      </span>
+      <span class="phase-card__badge" aria-hidden="true">Período</span>
+    </button>`);
+  return attachTilt($card);
+}
+
+/** Card pequeno de um marco (nível "Marcos"): destaque de uma fase. Clicar abre a fase. */
+export function createMarkCard(text, phase, index) {
+  const $card = $(`
+    <button type="button" class="phase-card phase-card--mark" data-phase-index="${index}" data-period="${esc(phase.period)}" aria-label="${esc(text)} — abrir a fase ${esc(phase.title)}">
+      <span class="phase-card__shadow" aria-hidden="true"></span>
+      <span class="phase-card__face">
+        <span class="phase-card__img"><img src="${art.cover(phase)}" alt="" width="800" height="500" draggable="false" loading="lazy"></span>
+        <span class="phase-card__body"><strong class="phase-card__title">${esc(text)}</strong></span>
+      </span>
+    </button>`);
+  return attachTilt($card);
 }

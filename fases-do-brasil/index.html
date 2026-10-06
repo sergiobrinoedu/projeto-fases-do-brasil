@@ -23,19 +23,18 @@
 
     <main id="app">
       <!-- Rota: / -->
-      <section id="page-home" class="page" aria-labelledby="titulo">
-        <div class="hero__head">
+      <section id="page-home" class="page page--home" aria-labelledby="titulo">
+        <div class="hero__head hero__head--compact">
           <span class="eyebrow">1500 — Presente</span>
           <h1 id="titulo">Fases do <em>Brasil</em></h1>
-          <p class="lead">Role a linha do tempo e clique em uma fase para mergulhar na história.</p>
           <div class="journey" aria-live="polite">
             <div class="journey__bar" aria-hidden="true"><i></i></div>
             <p class="journey__text"></p>
             <button type="button" class="journey__reset" hidden>Reiniciar progresso</button>
           </div>
         </div>
-        <div id="timeline" class="timeline" aria-label="Linha do tempo das fases da História do Brasil">
-          <div class="tl-grid" role="list"></div>
+        <div id="timeline" class="timeline" aria-label="Linha do tempo horizontal das fases da História do Brasil">
+          <div class="tl-stage"></div>
         </div>
       </section>
 
