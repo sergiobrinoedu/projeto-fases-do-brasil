@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import { createPhaseCard, createPeriodNodeCard, createMarkCard } from '@/components/PhaseCard.js';
 import { esc } from '@/infra/escape.js';
+import { bus } from '@/infra/EventBus.js';
 
 const STATUS = { read: '✓ Lida', current: 'Você está aqui', todo: '' };
 const LEVELS = ['Períodos', 'Fases', 'Marcos'];
@@ -203,6 +204,9 @@ export class TimelineView {
       s.el.style.left = `${px(s.start) + 3}px`;
       s.el.style.width = `${Math.max(0, (s.end - s.start) * S - 6)}px`;
     });
+
+    const zq = Math.round(this.zNow * 200) / 200;
+    if (zq !== this.zEmitted) { this.zEmitted = zq; bus.emit('timeline:zoom', { z: zq }); }
 
     const level = S < 0.95 * Sa ? 0 : S < 0.95 * Sb ? 1 : 2;
     if (level !== this.level || !this.$controls.data('init')) {

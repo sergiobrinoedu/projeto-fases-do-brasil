@@ -50,14 +50,14 @@ API (`server/index.js`): `GET /api/timeline`, `/api/phases`, `/api/phases/:id`, 
 Em produção, o servidor precisa devolver `index.html` para qualquer rota (o `npm start` já faz isso; em hospedagem estática configure o "fallback SPA").
 
 ## Fundo: ampulheta de areia
-`src/view/SceneView.js` (Three.js). A areia desce conforme o tempo em que a pessoa está no site (`RUN_SECONDS`, padrão 120 s; só conta com a aba visível). Quando acaba, a ampulheta gira 180° e a areia volta a cair. O ponto da areia é guardado na sessão do navegador (recarregar não zera). Ajuste tempos e tamanhos nas constantes no topo do arquivo. Respeita `prefers-reduced-motion`.
+`src/view/SceneView.js` (Three.js). Começa **centralizada**; conforme o zoom da linha do tempo (ou ao sair do início/abrir uma fase) ela **desliza girando para o canto superior direito** e fica ali. A areia **derrama conforme a pessoa lê e navega**: rolar, clicar, teclar e tocar liberam alguns segundos de areia (`ping`), ler uma fase aberta derrama continuamente e concluir uma fase dá um impulso extra (`addFlow`). Sem atividade o fio para. Com `RUN_SECONDS` (padrão 100 s) de atividade a areia acaba, a ampulheta gira 180° e recomeça. O ponto da areia é guardado na sessão (recarregar não zera). Respeita `prefers-reduced-motion`.
 
 ## Linha do tempo horizontal com zoom
 Layout baseado no SVG de referência: linha horizontal centralizada, cards alternando acima/abaixo, **data** junto ao ponto e **nome** da fase na ponta do card. O zoom é contínuo, como no Google Maps:
 - **Períodos** (Colônia · Império · República) → **Fases** (11 cards clicáveis) → **Marcos** (destaques de cada fase).
 - Ao aproximar, a camada atual "passa à frente" (cresce e some com transparência suave) e a seguinte vem de longe (zoom in); ao afastar acontece o contrário (zoom out).
 - Controles: roda do mouse (zoom no cursor; no limite a página rola), pinça no celular, botões **＋ / −**, duplo clique, arrastar para navegar. Teclado/TV: ← → fase anterior/próxima · ↑ ↓ (ou + −) zoom · Home visão geral.
-- Os cards mantêm o visual e o efeito 3D de antes. Parâmetros de escala em `src/view/TimelineView.js`; tamanhos em `.tl-stage` (`src/styles/main.css`).
+- Os cards mantêm o visual e o efeito 3D de antes. Parâmetros de escala em `src/view/TimelineView.js`; tamanhos em `.tl-stage` (`src/styles/main.css`). O card de fase se ajusta à altura disponível (`--cw` calculado de `--stage-h`, `--gap` e `--pad-y`), então os cards de cima nunca são cortados; em telas baixas o cabeçalho fica compacto.
 
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
