@@ -133,12 +133,13 @@ a { color: inherit; }
   --stage-h: calc(100svh - 12.2rem);
   --bar: 3.9rem;                                                              /* faixa dos controles de zoom */
   --gap: 3.3rem;                                                              /* da linha até o card */
-  --pad-y: 3.4rem;                                                            /* folga vertical: nada é cortado pela máscara */
+  --pad-y: 0.9rem;                                                            /* folga vertical dentro do palco */
+  --fit: 1;                                                                   /* ajustado pelo JS (#fit) conforme a fonte/tela */
   --cw-max: 15.5rem;
   /* largura do card: cabe SEMPRE na meia-altura (gap + nome + folga do hover), em qualquer tela */
-  --cw: clamp(7.6rem, calc(((max(var(--stage-h), 42rem) - var(--bar)) / 2 - var(--gap) - 3.9rem) / 1.28), var(--cw-max));
+  --cw: clamp(9.2rem, calc(((max(var(--stage-h), 30rem) - var(--bar)) / 2 - 4.6rem) / 1.28), var(--cw-max));
   --mw: calc(var(--cw) * 0.64);                                               /* largura do card de marco */
-  position: relative; height: calc(max(var(--stage-h), 42rem) + 2 * var(--pad-y)); margin-block: calc(1.2rem - var(--pad-y)) calc(-1 * var(--pad-y)); perspective: 1100px; perspective-origin: 50% calc(50% - var(--bar) / 2);
+  position: relative; height: calc(max(var(--stage-h), 30rem, var(--need-h, 0px)) + 2 * var(--pad-y)); margin-block: 0.6rem 0; perspective: 1100px; perspective-origin: 50% calc(50% - var(--bar) / 2);
   overflow-x: clip; overflow-y: visible; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
@@ -169,11 +170,11 @@ a { color: inherit; }
 .tl-it--mark .tl-date { font-size: 0.7rem; opacity: 0.8; }
 
 /* caixa do card + nome (nome na extremidade, como no layout) */
-.tl-box { position: absolute; left: 0; transform: translateX(-50%); width: var(--cw); display: flex; align-items: center; gap: 0.55rem; }
+.tl-box { position: absolute; left: 0; transform: translateX(-50%) scale(var(--cs, 1)); width: var(--cw); display: flex; align-items: center; gap: 0.55rem; }
 .tl-it--period .tl-box { width: calc(var(--cw) * 1.1); }
 .tl-it--mark .tl-box { width: var(--mw); }
-.tl-it[data-side='down'] .tl-box { top: var(--gap); flex-direction: column; }
-.tl-it[data-side='up'] .tl-box { bottom: var(--gap); flex-direction: column-reverse; }
+.tl-it[data-side='down'] .tl-box { top: var(--gap); flex-direction: column; transform-origin: 50% 0; }
+.tl-it[data-side='up'] .tl-box { bottom: var(--gap); flex-direction: column-reverse; transform-origin: 50% 100%; }
 .tl-it[data-side='up'] .tl-name { margin-bottom: 0.15rem; padding-top: 0.55rem; }
 .tl-it[data-side='down'] .tl-name { padding-bottom: 0.55rem; }
 .tl-name { max-width: 100%; padding: 0.3rem 0.5rem; text-align: center; font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -270,6 +271,7 @@ a { color: inherit; }
 
 /* ----- cards dentro da linha do tempo: compactos, mesmo visual/efeito 3D ----- */
 .tl-box .phase-card { max-width: none; }
+.tl-box .phase-card__body { min-height: 5.2rem; }   /* cards da linha do tempo: menos altura ociosa, mesmo visual */
 .tl-box .phase-card__body { min-height: 0; padding: 0.7rem 0.85rem 0.35rem; gap: 0.15rem; }
 .tl-box .phase-card__title { font-size: 0.95rem; }
 .tl-box .phase-card__sub { font-size: 0.78rem; }
@@ -389,7 +391,7 @@ a { color: inherit; }
 /* ----- Timeline: ajustes de tela ----- */
 @media (max-width: 575px) {
   .hero__head--compact { padding-top: 4.6rem; }
-  .tl-stage { --stage-h: calc(100svh - 11rem); --gap: 2.9rem; --pad-y: 2.8rem; }
+  .tl-stage { --stage-h: calc(100svh - 11rem); --gap: 2.9rem; --pad-y: 0.9rem; }
   .tl-hint { display: none; }
 }
 /* telas baixas e largas: cabeçalho compacto para o cartão de cima nunca ser espremido */

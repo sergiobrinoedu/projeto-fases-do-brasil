@@ -41,7 +41,14 @@ export class TimelineView {
     this.cx = 0; this.cxNow = 0;    // centro alvo / atual (em τ)
     this.reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.level = 0;
-    new ResizeObserver(() => this.#measure()).observe(this.stage);
+    let lastW = 0;
+    new ResizeObserver(() => {
+      const w = this.stage.clientWidth;
+      if (w !== lastW) { lastW = w; this.#fit(); }   // só reajusta o encaixe quando a largura muda (evita laço com a altura)
+      this.#measure();
+    }).observe(this.stage);
+    window.addEventListener('resize', () => { this.#fit(); this.#measure(); });
+    document.fonts?.ready.then(() => { this.#fit(); this.#measure(); }); // a fonte dos títulos muda a altura dos cards
   }
 
   onSelect(cb) { this.#h.select = cb; }
@@ -97,6 +104,7 @@ export class TimelineView {
 
     this.#controls();
     this.#bind();
+    this.#fit();
     this.#measure(true);
     this.updateStates(progress);
     this.renderProgress(progress);
@@ -129,6 +137,38 @@ export class TimelineView {
       </div>
       <p class="tl-hint" aria-hidden="true">Role o mouse ou use a pinça para dar zoom · arraste para navegar</p>`);
     this.$root.find('.timeline').append(this.$controls);
+  }
+
+  // ------------------------------------------------------------------ encaixe vertical
+  /**
+   * Garante que os cards de cima e de baixo CABEM na altura do palco, com a fonte real e qualquer tela:
+   * 1) reduz os cards por igual (--cs: escala do card inteiro, mantendo o design); 2) se ainda não couber, aumenta a altura do palco (--need-h).
+   * Assim nada é cortado nem invade o título da página.
+   */
+  #fit() {
+    if (!this.nodes.length) return;
+    const st = this.stage;
+    const hidden = this.nodes.filter((n) => n.el.style.display === 'none');
+    hidden.forEach((n) => { n.el.style.display = ''; });
+    const boxes = [...st.querySelectorAll('.tl-it--period .tl-box, .tl-it--phase .tl-box')];
+    const gap = st.querySelector('.tl-stem')?.offsetHeight || 52;
+    const bar = parseFloat(getComputedStyle(st).getPropertyValue('--bar')) || 0;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const barPx = bar ? (/rem$/.test(getComputedStyle(st).getPropertyValue('--bar').trim()) ? bar * rem : bar) : 62;
+    const pop = 18; // folga para o efeito de zoom do hover
+    const needFor = () => Math.max(0, ...boxes.map((b) => b.offsetHeight)) + gap + pop;
+
+    st.style.removeProperty('--need-h');
+    st.style.setProperty('--cs', '1');
+    const padPx = (parseFloat(getComputedStyle(st).getPropertyValue('--pad-y')) || 0) * rem;
+    const base = st.clientHeight - 2 * padPx;               // altura útil do palco
+    const avail = (base - barPx) / 2 - gap - pop;           // espaço de cada lado da linha para o card
+    const boxH = Math.max(1, ...boxes.map((b) => b.offsetHeight));
+    const cs = Math.min(1, Math.max(0.62, avail / boxH));   // escala uniforme do card (texto junto, sem reflow)
+    st.style.setProperty('--cs', cs.toFixed(3));
+    const need = 2 * (boxH * cs + gap + pop) + barPx;
+    if (need > base) st.style.setProperty('--need-h', `${Math.ceil(need)}px`); // telas minúsculas: o palco cresce
+    hidden.forEach((n) => { n.el.style.display = 'none'; });
   }
 
   // ------------------------------------------------------------------ escala / medidas
