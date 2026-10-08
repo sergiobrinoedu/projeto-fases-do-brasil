@@ -1,6 +1,8 @@
 import { bus } from '@/infra/EventBus.js';
+import { cookies } from '@/infra/cookies.js';
 
 const KEY = 'fdb.progress.v1';
+const COOKIE = 'fdb_progress';
 
 /**
  * Progresso de leitura do aluno (persistido no navegador).
@@ -16,7 +18,9 @@ export class ProgressService {
   load(phases) {
     this.phases = phases;
     try {
-      const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null');
+      let raw = null;
+      try { raw = localStorage.getItem(KEY); } catch { /* storage bloqueado */ }
+      const saved = JSON.parse(raw ?? cookies.get(COOKIE) ?? 'null'); // localStorage primeiro, cookie como reserva
       if (saved) {
         const ids = new Set(phases.map((p) => p.id));
         this.#read = new Set((saved.read ?? []).filter((id) => ids.has(id)));
@@ -31,6 +35,8 @@ export class ProgressService {
 
   get total() { return this.phases.length; }
   get readCount() { return this.#read.size; }
+  /** Cópia serializável do progresso (usada para o cookie). */
+  get snapshot() { return { read: [...this.#read], current: this.current }; }
   get finished() { return this.current === null; }
   get focusIndex() { return this.current ?? this.phases.length - 1; }
 

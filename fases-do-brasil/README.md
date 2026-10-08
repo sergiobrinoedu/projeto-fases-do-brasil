@@ -53,10 +53,13 @@ Layout baseado no SVG de referência: linha horizontal centralizada, cards alter
 - **Períodos** (Colônia · Império · República) → **Fases** (11 cards clicáveis) → **Marcos** (destaques de cada fase).
 - Ao aproximar, a camada atual "passa à frente" (cresce e some com transparência suave) e a seguinte vem de longe (zoom in); ao afastar acontece o contrário (zoom out).
 - Controles: roda do mouse (zoom no cursor; no limite a página rola), pinça no celular, botões **＋ / −**, duplo clique, arrastar para navegar. Teclado/TV: ← → fase anterior/próxima · ↑ ↓ (ou + −) zoom · Home visão geral.
-- Os cards mantêm o visual e o efeito 3D de antes. Parâmetros de escala em `src/view/TimelineView.js`; tamanhos em `.tl-stage` (`src/styles/main.css`). O card de fase se ajusta à altura disponível (`--cw` calculado de `--stage-h`, `--gap` e `--pad-y`), então os cards de cima nunca são cortados; em telas baixas o cabeçalho fica compacto.
+- Os cards mantêm o visual e o efeito 3D de antes. Parâmetros de escala em `src/view/TimelineView.js`; tamanhos em `.tl-stage` (`src/styles/main.css`). O encaixe vertical é **medido em tempo de execução com a fonte real** (`#fit()` em `TimelineView.js`): os cards são reduzidos por igual (`--cs`) até caber acima e abaixo da linha e, só em telas minúsculas, o palco cresce (`--need-h`). Assim o nome do card nunca invade o título da página; em telas baixas o cabeçalho fica compacto.
 
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
+
+- **Sem conta:** o progresso fica no navegador em `localStorage` **e** num cookie de reserva (`fdb_progress`, 400 dias, `SameSite=Lax`, ver `src/services/ProgressCookie.js`). Se um dos dois for limpo, o outro restaura os cards "lidos".
+- **Botão Reiniciar** (canto superior esquerdo, `src/components/ResetButton.js`): dois toques (o primeiro pede "Confirmar?") apagam todos os cards lidos do navegador ou da conta logada. Fica desabilitado quando não há nada lido.
 
 ## Navegação
 Mouse (hover = zoom + card 3D), toque (arrastar/pinça), teclado/controle de TV (← → fases · ↑ ↓ zoom · Enter abre · Esc fecha).
