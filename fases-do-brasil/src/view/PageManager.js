@@ -4,7 +4,6 @@ import { bus } from '@/infra/EventBus.js';
 const PAGES = {
   home: { sel: '#page-home', title: 'Fases do Brasil — Linha do Tempo' },
   sobre: { sel: '#page-sobre', title: 'Sobre o projeto — Fases do Brasil' },
-  login: { sel: '#page-login', title: 'Entrar — Fases do Brasil' },
   equipe: { sel: '#page-equipe', title: 'Sobre nós — Fases do Brasil' },
 };
 

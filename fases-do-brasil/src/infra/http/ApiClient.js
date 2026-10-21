@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { config } from '@/infra/config.js';
+import { session } from '@/auth/Session.js';
 
 /** Erro padronizado da API: mensagem amigável, status HTTP e (opcional) campo do formulário. */
 export class ApiError extends Error {
@@ -10,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-/** Cliente HTTP (jQuery.ajax) com JSON, timeout e cookie de sessão (httpOnly) enviado junto. */
+/** Cliente HTTP (jQuery.ajax) com JSON, timeout, cookies do navegador e token da sessão do visitante. */
 export class ApiClient {
   constructor(base = config.apiBase) {
     this.base = base;
@@ -25,6 +26,7 @@ export class ApiClient {
         contentType: 'application/json',
         data: body === undefined ? undefined : JSON.stringify(body),
         timeout,
+        headers: session.token ? { 'X-Session-Token': session.token } : {},
         xhrFields: { withCredentials: true },
       }).then(resolve, (xhr, status) => {
         const msg = xhr.responseJSON?.error
@@ -36,6 +38,6 @@ export class ApiClient {
   }
 
   get(path) { return this.request('GET', path); }
-  post(path, body, timeout = config.authTimeoutMs) { return this.request('POST', path, body ?? {}, timeout); }
-  put(path, body) { return this.request('PUT', path, body, config.authTimeoutMs); }
+  post(path, body, timeout = config.writeTimeoutMs) { return this.request('POST', path, body ?? {}, timeout); }
+  put(path, body) { return this.request('PUT', path, body, config.writeTimeoutMs); }
 }

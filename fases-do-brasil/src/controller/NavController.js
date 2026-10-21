@@ -6,12 +6,9 @@ export class NavController {
     this.view = view;
   }
 
-  init(user = null) {
+  init() {
     this.view.render();
-    if (user) this.view.renderUser(user);
     bus.on('page:changed', ({ name }) => this.view.setActive(name));
-    bus.on('auth:changed', ({ user }) => this.view.renderUser(user));
-    this.view.onLogout(() => bus.emit('auth:logout-request'));
     const onScroll = () => this.view.setScrolled(window.scrollY > 24);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();

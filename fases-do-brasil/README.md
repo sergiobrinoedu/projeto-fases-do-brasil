@@ -2,7 +2,7 @@
 
 Página educacional interativa sobre as fases da História do Brasil (1500 → hoje).
 
-**Stack:** JavaScript/Node.js · Vite · Three.js · Bootstrap 5 · jQuery · Express (API) · MySQL · Prisma · Google Identity (login)
+**Stack:** JavaScript/Node.js · Vite · Three.js · Bootstrap 5 · jQuery · Express (API) · MySQL · Prisma
 
 ## Como rodar
 ```bash
@@ -24,7 +24,7 @@ Para abrir no celular/TV: use o endereço de rede mostrado pelo Vite (`Network: 
 | `domain/` | Entidades (`Phase`, `Period`) e contrato `PhaseRepository` | Entity, Factory (`fromDTO`), Repository (porta) |
 | `infra/` | Dados, HTTP (jQuery.ajax), repositórios API/Local, `EventBus`, config | Repository (adaptadores), Observer/Pub-Sub, Singleton |
 | `services/` | `PhaseService` (API com fallback local), `ArtService` (ilustrações SVG) | Service Layer, Strategy |
-| `auth/` | `Session`, `AuthService`, `AuthGuard` (extensão futura de login/RBAC) | Singleton, Guard |
+| `auth/` | `Session` (sessão/token do visitante no navegador), `AuthGuard` (papel `guest`) | Singleton, Guard |
 | `models/` | `TimelineModel` (estado observável) | Model (MVC), Observer |
 | `view/` | Navbar de vidro, Timeline, Detalhe (zoom), Sobre, Cena 3D (ampulheta) | View (MVC) |
 | `components/` | `PhaseCard`, `Gallery` (Bootstrap Carousel), `PeriodCard` | Component / Factory |
@@ -45,7 +45,6 @@ API (`server/index.js`): `GET /api/timeline`, `/api/phases`, `/api/phases/:id`, 
 | `/fase/:id` | Detalhe de uma fase (ex.: `/fase/era-vargas`) |
 | `/sobre` | Sobre o projeto |
 | `/equipe` | Sobre nós |
-| `/login` | Entrar / cadastrar (`?cadastro` abre o cadastro, `?next=/caminho` volta depois do login) |
 
 Em produção, o servidor precisa devolver `index.html` para qualquer rota (o `npm start` já faz isso; em hospedagem estática configure o "fallback SPA").
 
@@ -62,16 +61,15 @@ Layout baseado no SVG de referência: linha horizontal centralizada, cards alter
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
 
-- **Sem conta:** o progresso fica no navegador em `localStorage` **e** num cookie de reserva (`fdb_progress`, 400 dias, `SameSite=Lax`, ver `src/services/ProgressCookie.js`). Se um dos dois for limpo, o outro restaura os cards "lidos".
-- **Botão Reiniciar** (canto superior esquerdo, `src/components/ResetButton.js`): dois toques (o primeiro pede "Confirmar?") apagam todos os cards lidos do navegador ou da conta logada. Fica desabilitado quando não há nada lido.
+- **Sem conta (acesso livre):** o progresso fica no navegador em `localStorage` **e** num cookie de reserva (`fdb_progress`, 400 dias, `SameSite=Lax`, ver `src/services/ProgressCookie.js`). Se um dos dois for limpo, o outro restaura os cards "lidos".
+- **Botão Reiniciar** (canto superior esquerdo, `src/components/ResetButton.js`): dois toques (o primeiro pede "Confirmar?") apagam todos os cards lidos deste navegador (localStorage e cookie). Fica desabilitado quando não há nada lido.
 
-## Login, cadastro e banco de dados
-- **Banco:** MySQL (`instruções/datasetconfig.md` → usuário `root`, senha `root`). Os scripts de criação das tabelas estão em **`data/*.sql`** (um arquivo por assunto, executados em ordem por `npm run db:init`). `data/07_seed_conteudo.sql` é gerado de `src/infra/data/phases.data.js` (`npm run db:seed:gen`).
-- **Prisma:** `prisma/schema.prisma` espelha as tabelas; o acesso ao banco fica nas camadas `server/models` (Prisma Client) e `server/services` (regras). Rotas em `server/routes`.
-- **Conta do site:** nome, e-mail e senha (hash bcrypt) → tabela `users`. Sessão = cookie httpOnly + tabela `sessions` (guarda só o hash do token).
-- **Conta Google:** botão oficial *Google Identity Services* no navegador; o servidor valida o token com a biblioteca open source `google-auth-library` e grava **nome e e-mail** em `users`. Defina `GOOGLE_CLIENT_ID` no `.env` (passo a passo no `.env.example`). Sem ele o botão aparece desativado.
-- **Progresso:** logado, as fases lidas são salvas em `user_phase_read` / `user_journey` e acompanham o aluno em qualquer aparelho.
-- **UX:** ícone de usuário na navbar → `/login`; botão **CADASTRE-SE** alterna entre as áreas Entrar/Cadastrar; logado, o ícone vira avatar com menu (*Minha conta* / *Sair*).
+## Banco de dados e sessão do visitante
+- **Sem contas:** o site é de acesso livre. Não há login, cadastro nem logout; o aluno abre a página e já pode ler os cards.
+- **Estado do aluno:** fica no próprio computador — progresso em `localStorage` + cookie `fdb_progress`; sessão do navegador (`src/auth/Session.js`) com token em `sessionStorage` (`fdb.session`).
+- **Banco:** MySQL (`instruções/datasetconfig.md` → usuário `root`, senha `root`), só com o **conteúdo** das fases. Scripts em **`data/*.sql`** (executados em ordem por `npm run db:init`). `data/07_seed_conteudo.sql` é gerado de `src/infra/data/phases.data.js` (`npm run db:seed:gen`).
+- **Prisma:** `prisma/schema.prisma` espelha as tabelas de conteúdo; acesso em `server/models` e regras em `server/services`. Rotas em `server/routes`.
+- Bancos criados em versões anteriores podem ainda ter as tabelas `users`, `sessions`, `user_phase_read` e `user_journey`; elas não são mais usadas e podem ser apagadas manualmente.
 
 ## Navegação
 Mouse (hover = zoom + card 3D), toque (arrastar/pinça), teclado/controle de TV (← → fases · ↑ ↓ zoom · Enter abre · Esc fecha).
