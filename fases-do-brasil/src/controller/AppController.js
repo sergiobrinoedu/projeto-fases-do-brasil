@@ -24,7 +24,8 @@ import { BackgroundController } from '@/controller/BackgroundController.js';
 export class AppController {
   async start() {
     const service = new PhaseService(new ApiPhaseRepository(), new LocalPhaseRepository());
-    const model = new TimelineModel(new ProgressService());
+    const progress = new ProgressService();
+    const model = new TimelineModel(progress);
     const router = new Router();
     const pages = new PageManager();
 

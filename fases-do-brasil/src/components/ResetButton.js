@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 /**
  * Botão "Reiniciar" (canto superior esquerdo). Apaga os cards lidos deste navegador
- * (ou da conta, quando há login — quem trata isso é o ProgressService).
+ * (localStorage + cookie fdb_progress — quem trata isso é o ProgressService).
  * Dois toques: o primeiro pede confirmação, o segundo reinicia (sem janelas do navegador).
  */
 export class ResetButton {

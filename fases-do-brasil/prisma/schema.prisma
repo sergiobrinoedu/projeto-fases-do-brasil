@@ -1,0 +1,80 @@
+// Schema Prisma — espelha os arquivos data/*.sql (a fonte da verdade das tabelas é data/).
+// Após alterar: npx prisma generate
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Period {
+  id          String  @id @db.VarChar(32)
+  name        String  @db.VarChar(80)
+  startYear   Int     @map("start_year") @db.SmallInt
+  endYear     Int?    @map("end_year") @db.SmallInt
+  description String  @db.Text
+  sortOrder   Int     @default(0) @map("sort_order") @db.SmallInt
+
+  phases Phase[]
+
+  @@map("periods")
+}
+
+model Phase {
+  id        String  @id @db.VarChar(48)
+  periodId  String  @map("period_id") @db.VarChar(32)
+  title     String  @db.VarChar(120)
+  subtitle  String  @db.VarChar(120)
+  startYear Int     @map("start_year") @db.SmallInt
+  endYear   Int?    @map("end_year") @db.SmallInt
+  art       String? @db.VarChar(32)
+  summary   String  @db.Text
+  sortOrder Int     @unique(map: "uq_phases_order") @map("sort_order") @db.SmallInt
+
+  period     Period           @relation(fields: [periodId], references: [id], map: "fk_phases_period")
+  paragraphs PhaseParagraph[]
+  highlights PhaseHighlight[]
+  images     PhaseImage[]
+
+  @@index([periodId], map: "ix_phases_period")
+  @@map("phases")
+}
+
+model PhaseParagraph {
+  id       Int    @id @default(autoincrement()) @db.UnsignedInt
+  phaseId  String @map("phase_id") @db.VarChar(48)
+  position Int    @db.SmallInt
+  content  String @db.Text
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_paragraph_phase")
+
+  @@unique([phaseId, position], map: "uq_paragraph_pos")
+  @@map("phase_paragraphs")
+}
+
+model PhaseHighlight {
+  id       Int    @id @default(autoincrement()) @db.UnsignedInt
+  phaseId  String @map("phase_id") @db.VarChar(48)
+  position Int    @db.SmallInt
+  text     String @db.VarChar(160)
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_highlight_phase")
+
+  @@unique([phaseId, position], map: "uq_highlight_pos")
+  @@map("phase_highlights")
+}
+
+model PhaseImage {
+  id       Int     @id @default(autoincrement()) @db.UnsignedInt
+  phaseId  String  @map("phase_id") @db.VarChar(48)
+  position Int     @db.SmallInt
+  url      String  @db.VarChar(500)
+  caption  String? @db.VarChar(200)
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade, map: "fk_image_phase")
+
+  @@unique([phaseId, position], map: "uq_image_pos")
+  @@map("phase_images")
+}

@@ -2,11 +2,14 @@
 
 Página educacional interativa sobre as fases da História do Brasil (1500 → hoje).
 
-**Stack:** JavaScript/Node.js · Vite · Three.js · Bootstrap 5 · jQuery · Express (API)
+**Stack:** JavaScript/Node.js · Vite · Three.js · Bootstrap 5 · jQuery · Express (API) · MySQL · Prisma
 
 ## Como rodar
 ```bash
-npm install
+cp .env.example .env                                   # (Windows: copy .env.example .env)
+docker compose -f ../docker/docker-compose.yml up -d   # MySQL 8 em localhost:3307 (root / root)
+npm install                                            # também roda `prisma generate`
+npm run db:init                                        # cria o banco e as tabelas (pasta data/*.sql) + conteúdo das fases
 npm run dev:all   # front (http://localhost:5173) + API (http://localhost:3001)
 # ou apenas o front (usa dados locais se a API estiver offline):
 npm run dev
@@ -21,7 +24,7 @@ Para abrir no celular/TV: use o endereço de rede mostrado pelo Vite (`Network: 
 | `domain/` | Entidades (`Phase`, `Period`) e contrato `PhaseRepository` | Entity, Factory (`fromDTO`), Repository (porta) |
 | `infra/` | Dados, HTTP (jQuery.ajax), repositórios API/Local, `EventBus`, config | Repository (adaptadores), Observer/Pub-Sub, Singleton |
 | `services/` | `PhaseService` (API com fallback local), `ArtService` (ilustrações SVG) | Service Layer, Strategy |
-| `auth/` | `Session`, `AuthService`, `AuthGuard` (extensão futura de login/RBAC) | Singleton, Guard |
+| `auth/` | `Session` (sessão/token do visitante no navegador), `AuthGuard` (papel `guest`) | Singleton, Guard |
 | `models/` | `TimelineModel` (estado observável) | Model (MVC), Observer |
 | `view/` | Navbar de vidro, Timeline, Detalhe (zoom), Sobre, Cena 3D (ampulheta) | View (MVC) |
 | `components/` | `PhaseCard`, `Gallery` (Bootstrap Carousel), `PeriodCard` | Component / Factory |
@@ -58,8 +61,15 @@ Layout baseado no SVG de referência: linha horizontal centralizada, cards alter
 ## Progresso de leitura
 "Próxima fase" marca a fase como lida (card esmaecido com a cor `#0e1216`, selo "Lida"), volta à linha do tempo e destaca a próxima ("Você está aqui"). Fases lidas continuam clicáveis. O progresso fica salvo no navegador (botão "Reiniciar progresso" na home).
 
-- **Sem conta:** o progresso fica no navegador em `localStorage` **e** num cookie de reserva (`fdb_progress`, 400 dias, `SameSite=Lax`, ver `src/services/ProgressCookie.js`). Se um dos dois for limpo, o outro restaura os cards "lidos".
-- **Botão Reiniciar** (canto superior esquerdo, `src/components/ResetButton.js`): dois toques (o primeiro pede "Confirmar?") apagam todos os cards lidos do navegador ou da conta logada. Fica desabilitado quando não há nada lido.
+- **Sem conta (acesso livre):** o progresso fica no navegador em `localStorage` **e** num cookie de reserva (`fdb_progress`, 400 dias, `SameSite=Lax`, ver `src/services/ProgressCookie.js`). Se um dos dois for limpo, o outro restaura os cards "lidos".
+- **Botão Reiniciar** (canto superior esquerdo, `src/components/ResetButton.js`): dois toques (o primeiro pede "Confirmar?") apagam todos os cards lidos deste navegador (localStorage e cookie). Fica desabilitado quando não há nada lido.
+
+## Banco de dados e sessão do visitante
+- **Sem contas:** o site é de acesso livre. Não há login, cadastro nem logout; o aluno abre a página e já pode ler os cards.
+- **Estado do aluno:** fica no próprio computador — progresso em `localStorage` + cookie `fdb_progress`; sessão do navegador (`src/auth/Session.js`) com token em `sessionStorage` (`fdb.session`).
+- **Banco:** MySQL (`instruções/datasetconfig.md` → usuário `root`, senha `root`), só com o **conteúdo** das fases. Scripts em **`data/*.sql`** (executados em ordem por `npm run db:init`). `data/07_seed_conteudo.sql` é gerado de `src/infra/data/phases.data.js` (`npm run db:seed:gen`).
+- **Prisma:** `prisma/schema.prisma` espelha as tabelas de conteúdo; acesso em `server/models` e regras em `server/services`. Rotas em `server/routes`.
+- Bancos criados em versões anteriores podem ainda ter as tabelas `users`, `sessions`, `user_phase_read` e `user_journey`; elas não são mais usadas e podem ser apagadas manualmente.
 
 ## Navegação
 Mouse (hover = zoom + card 3D), toque (arrastar/pinça), teclado/controle de TV (← → fases · ↑ ↓ zoom · Enter abre · Esc fecha).
@@ -67,7 +77,7 @@ Mouse (hover = zoom + card 3D), toque (arrastar/pinça), teclado/controle de TV 
 ## Versionamento (Git)
 Padrão de commit (já configurado em `.gitmessage`):
 ```
-Versão : 1.x.x
+Version : 1.x.x
 Add : ( o que foi adicionado )
 Rem : ( o que foi removido )
 Fix : ( correções )
